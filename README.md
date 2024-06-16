@@ -1,80 +1,73 @@
 # mvp-sprint1-back
 
-Este repositório contém o código-fonte do back-end para o Minimum Viable Product (MVP) da disciplina de Desenvolvimento Full Stack Básico.
+This repository contains the backend source code for the MVP of the Basic Full Stack Development sprint.
 
---- 
+## Sumary
 
-## Sumário
+1. [Description](#1-description)
+2. [Technologies](#2-technologies)
+3. [How To](#3-how-to)
 
-1. [Descrição da API](#descrição-da-api)
-2. [Tecnologias Utilizadas](#tecnologias-utilizadas)
-3. [Como Executar](#como-executar)
----
+## 1. Description
 
-## 1. Descrição da API
+According to the [OPC Foundation](https://reference.opcfoundation.org/I4AAS/v100/docs/4.1), the Asset Administration Shell (AAS) is the standardized digital representation of an asset in Industry 4.0. This representation not only encapsulates the physical data of an asset but also integrates its operational logic and evolutionary history. In a scenario where digitization and connectivity are essential, the AAS becomes crucial for interoperability between systems, enabling different components of a smart factory to communicate efficiently and adapt to real-time operational changes.
 
-De acordo com a [OPC Foundation](https://reference.opcfoundation.org/I4AAS/v100/docs/4.1), o Asset Administration Shell (AAS) é a representação digital padronizada de um ativo na Indústria 4.0. Essa representação não apenas encapsula os dados físicos de um ativo, mas também integra sua lógica operacional e sua história evolutiva. Em um cenário onde a digitalização e a conectividade são essenciais, o AAS se torna crucial para a interoperabilidade entre sistemas, permitindo que diferentes componentes de uma fábrica inteligente se comuniquem de maneira eficiente e se adaptem às mudanças operacionais em tempo real.
+The AAS goes beyond just a static description of an asset. It is dynamic, continuously updated by system designers, asset users, applications, and processes throughout the asset's lifecycle. This not only enhances operational efficiency but also enables advanced strategies such as predictive maintenance and resource optimization.
 
-O AAS não se limita apenas à descrição estática de um ativo. Ele é dinâmico, sendo continuamente atualizado por designers de sistemas, usuários de ativos, aplicações e processos ao longo do ciclo de vida do ativo. Isso não apenas melhora a eficiência operacional, mas também possibilita a implementação de estratégias avançadas de manutenção preditiva e otimização de recursos.
+In the context of this MVP, the focus is on simplifying the AAS creation process, emphasizing fundamental aspects such as identification, asset type, global information, among others. This serves as a foundational step towards developing more robust capabilities involving detailed submodels and property elements, essential for detailed and intelligent asset management in Industry 4.0.
 
-No contexto deste MVP, simplifica-se o processo de criação de um AAS, focando nos aspectos fundamentais como identificação, tipo de ativo, informações globais, entre outros. Este é um primeiro passo para desenvolver capacidades mais robustas que envolvem submodelos detalhados e elementos de propriedade, essenciais para um gerenciamento detalhado e inteligente dos ativos na Indústria 4.0.
+Building on this initial groundwork, the goal is to expand this project to include advanced functionalities for modeling Asset Administration Shells, supporting a wider variety of asset types and enabling deeper integrations with production and maintenance systems. This effort will not only facilitate the management of complex assets but also promote greater efficiency and adaptability in modern industrial environments.
 
-Com essa base inicial, o objetivo é expandir este projeto para incluir funcionalidades avançadas de modelagem de Asset Administration Shells, suportando uma variedade maior de tipos de ativos e permitindo integrações mais profundas com sistemas de produção e manutenção. Este trabalho não apenas facilitará a gestão de ativos complexos, mas também promoverá uma maior eficiência e adaptabilidade em ambientes industriais modernos.
-
----
-
-## 2. Tecnologias Utilizadas
+## 2. Technologies
 
 - `Python`
 - `Flask`
 - `SQLAlchemy`
 
----
+## 3. How To
 
-## 3. Como Executar
+To run this project, you will need to have all Python libraries listed in the `requirements.txt` file installed. Follow the steps below to set up the environment and run the application.
 
-Para executar este projeto, será necessário ter todas as bibliotecas Python listadas no arquivo `requirements.txt` instaladas. Siga as etapas abaixo para configurar o ambiente e executar a aplicação.
+### 3.1. Clone the Repository
 
-### 3.1. Clonar o Repositório
-
-Clone o repositório para o seu ambiente local.
+Clone the repository to your local environment.
 
 ```sh
-$ git clone <url-do-repositorio>
+$ git clone <repository-url>
 $ cd mvp-sprint1-back
 ```
 
-### 3.2. Criar e Ativar o Ambiente Virtual
+### 3.2. Create and Activate the Virtual Environment
 
-Recomenda-se uso de ambientes virtuais, como `virtualenv`, para gerenciar as dependências do projeto.
+It is recommended to use virtual environments, such as `virtualenv`, to manage project dependencies.
 
 ```sh
 $ python -m venv env
-$ source env/bin/activate  # No Windows use `env\Scripts\activate`
+$ source env/bin/activate  # On Windows use `env\Scripts\activate`
 ```
 
-### 3.3. Instalar as Dependências
+### 3.3. Install Dependencies
 
-Instale as dependências listadas no arquivo `requirements.txt`.
+Install the dependencies listed in the `requirements.txt` file.
 
 ```sh
 (env)$ pip install -r requirements.txt
 ```
 
-### 3.4. Executar a API
+### 3.4. Running the API
 
-Para iniciar a API, execute o comando abaixo.
+To start the API, execute the command below.
 
 ```sh
 (env)$ flask run --host 0.0.0.0 --port 5000
 ```
 
-#### Modo de Desenvolvimento
+#### Development Mode
 
-Em modo de desenvolvimento, recomenda-se utilizar o parâmetro `--reload`, que reiniciará automaticamente o servidor sempre que houver uma mudança no código fonte.
+In development mode, it's recommended to use the `--reload` parameter, which will automatically restart the server whenever there is a change in the source code.
 
 ```sh
 (env)$ flask run --host 0.0.0.0 --port 5000 --reload
 ```
 
-Abra o [http://localhost:5000/#/](http://localhost:5000/#/) no navegador para verificar o status da API em execução.
+Open [http://localhost:5000/#/](http://localhost:5000/#/) in your browser to check the status of the running API.
