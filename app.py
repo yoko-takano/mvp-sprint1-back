@@ -9,7 +9,8 @@ from model import Session
 from model.asset_administration_shell import AssetAdministrationShell, AssetKind
 from schemas import ErrorSchema
 from schemas.asset_administration_shell import AASSchema, show_aas, AASListSchema, show_aas_list, AASDelSchema, \
-    AASSearchSchema, AASViewSchema
+    AASSearchSchema, AASViewSchema, AASUpdateSchema
+from utils.id_decoder_service import IDDecoderService
 
 # First definitions
 info = Info(title="Asset Administration Shell Repository", version='1.0.0')
@@ -42,6 +43,17 @@ def check_existing_id_short(session, id_short, aas_id):
     """
     return session.query(AssetAdministrationShell).filter(
         AssetAdministrationShell.id_short == id_short,
+        AssetAdministrationShell.aas_id != aas_id
+    ).first()
+
+
+def check_existing_aas_id(session, aas_id, new_aas_id):
+    """
+    Check if another Asset Administration Shell with the same new_aas_id exists in the database,
+    excluding the current AAS with aas_id.
+    """
+    return session.query(AssetAdministrationShell).filter(
+        AssetAdministrationShell.aas_id == new_aas_id,
         AssetAdministrationShell.aas_id != aas_id
     ).first()
 
@@ -168,18 +180,18 @@ def get_aas(query: AASSearchSchema):
     """
     Returns a specific Asset Administration Shell by its Unique Identifier.
     """
-    aas_id = query.aas_id
-    logger.debug(f"Collecting data for Asset Administration Shell #{aas_id}")
+    decoded_aas_id = IDDecoderService.decode_id(query.aas_id)
+    logger.debug(f"Collecting data for Asset Administration Shell #{decoded_aas_id}")
     session = Session()
 
     try:
-        aas = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == aas_id).first()
+        aas = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == decoded_aas_id).first()
         if not aas:
             error_msg = "Asset Administration Shell not found"
-            logger.warning(f"Error finding Asset Administration Shell: {aas_id}, {error_msg}")
+            logger.warning(f"Error finding Asset Administration Shell: {decoded_aas_id}, {error_msg}")
             return jsonify({"message": error_msg}), 404
         else:
-            logger.debug(f"Asset Administration Shell data #{aas_id} found")
+            logger.debug(f"Asset Administration Shell data #{decoded_aas_id} found")
             return jsonify(show_aas(aas)), 200
 
     finally:
@@ -192,20 +204,21 @@ def delete_aas(query: AASSearchSchema):
     """
     Deletes an Asset Administration Shell.
     """
-    aas_id = unquote(unquote(query.aas_id))
-    logger.debug(f"Deleting data from Asset Administration Shell #{aas_id}")
+    decoded_aas_id = IDDecoderService.decode_id(query.aas_id)
+    logger.debug(f"Deleting data from Asset Administration Shell #{decoded_aas_id}")
     session = Session()
 
     try:
-        count = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == aas_id).delete()
+        count = session.query(AssetAdministrationShell).filter(
+            AssetAdministrationShell.aas_id == decoded_aas_id).delete()
         session.commit()
 
         if count:
-            logger.debug(f"Deleting Asset Administration Shell #{aas_id}")
-            return jsonify({"message": "Asset Administration Shell deleted", "aas_id": aas_id}), 200
+            logger.debug(f"Deleting Asset Administration Shell #{decoded_aas_id}")
+            return jsonify({"message": "Asset Administration Shell deleted", "aas_id": decoded_aas_id}), 200
         else:
             error_msg = "Asset Administration Shell not found in database"
-            logger.warning(f"Error deleting AAS #{aas_id}, {error_msg}")
+            logger.warning(f"Error deleting AAS #{decoded_aas_id}, {error_msg}")
             return jsonify({"message": error_msg}), 404
     finally:
         session.close()
@@ -213,11 +226,19 @@ def delete_aas(query: AASSearchSchema):
 
 @app.put("/aas", tags=[aas_tag],
          responses={"200": AASSchema, "404": ErrorSchema})
-def put_aas(form: AASSchema):
+def put_aas(form: AASUpdateSchema):
     """
     Updates an existing Asset Administration Shell.
     """
+
+    # Strip whitespace from fields
+    strip_whitespace(form)
+    if form.update_aas_id:
+        form.update_aas_id = form.update_aas_id.strip()
+
     aas_id = form.aas_id
+    new_aas_id = form.update_aas_id
+
     logger.debug(f"Updating data for Asset Administration Shell #{aas_id}")
     session = Session()
 
@@ -236,14 +257,23 @@ def put_aas(form: AASSchema):
             logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
             return jsonify({"message": error_msg}), 409
 
-        # Strip whitespace from fields
-        strip_whitespace(form)
+        # Verify if the new_aas_id already exists in the database
+        if new_aas_id and new_aas_id != aas_id:
+            existing_aas = check_existing_aas_id(session, aas_id, new_aas_id)
+            if existing_aas:
+                error_msg = f"Another Asset Administration Shell already exists with AAS ID: {new_aas_id}"
+                logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
+                return jsonify({"message": error_msg}), 409
 
         # Validate required fields
         if not check_required_fields(form):
             error_msg = "Fields 'aas_id', 'id_short', and 'global_asset_id' are required and cannot be empty"
             logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
             return jsonify({"message": error_msg}), 400
+
+        if new_aas_id and new_aas_id.strip():
+            # Update with the new aas_id
+            aas.aas_id = form.update_aas_id
 
         aas.id_short = form.id_short
         aas.asset_kind = AssetKind(form.asset_kind)
