@@ -11,13 +11,13 @@ class AASSchema(BaseModel):
     """
     Defines how a new Asset Administration Shell to be inserted should be represented.
     """
-    aas_id: str = Field(default="something_10293DWSds",
+    aas_id: str = Field(default="https://example.com/ids/aas/v01",
                         description="The globally unique identification of the element")
-    id_short: str = Field(default="Air_Central_023_AAS",
+    id_short: str = Field(default="Air_Central_v01_AAS",
                           description="A short name of the element")
     asset_kind: AssetKind = Field(default=AssetKind.INSTANCE,
                                   description="Denotes whether the Asset is of kind “Type” or “Instance”")
-    global_asset_id: str = Field(default="https://example.com/id/assets/",
+    global_asset_id: str = Field(default="https://example.com/id/assets/v01",
                                  description="Global identifier of the asset the AAS represents")
     version: Optional[str] = Field(default="1.0",
                                    description="Version of the element")
