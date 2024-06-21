@@ -1,15 +1,15 @@
+from random import randint
+
 from flask_openapi3 import Info, OpenAPI, Tag
 from flask import redirect, jsonify
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
-from urllib.parse import unquote
-
 from logger import logger
 from model import Session
-from model.asset_administration_shell import AssetAdministrationShell, AssetKind
+from model.asset_administration_shell import AssetAdministrationShell, AssetKind, DefineModelType
 from schemas import ErrorSchema
 from schemas.asset_administration_shell import AASSchema, show_aas, AASListSchema, show_aas_list, AASDelSchema, \
-    AASSearchSchema, AASViewSchema, AASUpdateSchema
+    AASSearchSchema, AASViewSchema, AASUpdateSchema, IdEncodeDecodeSchema, show_encode_decode_ids, ModelTypeSchema
 from utils.id_decoder_service import IDDecoderService
 
 # First definitions
@@ -139,18 +139,15 @@ def post_aas(form: AASSchema):
 
     except IntegrityError as e:
         # Handle IntegrityError specifically
-        error_msg = f"Asset Administration Shell already exists"
+        error_msg = f"Asset Administration Shell already exists: {str(e)}"
         logger.warning(f"Error creating Asset Administration Shell: {aas.aas_id}, {error_msg}")
         return jsonify({"message": error_msg}), 409
 
     except Exception as e:
         # Handle unexpected errors
-        error_msg = f"Could not save new Asset Administration Shell"
+        error_msg = f"Could not save new Asset Administration Shell: {str(e)}"
         logger.warning(f"Error creating Asset Administration Shell '{aas.aas_id}', {error_msg}")
         return jsonify({"message": error_msg}), 400
-
-    finally:
-        session.close()
 
 
 @app.get("/aas_list", tags=[aas_tag],
@@ -162,16 +159,12 @@ def get_aas_list():
     logger.debug(f"Collecting Asset Administration Shells")
     session = Session()
 
-    try:
-        aas_list = session.query(AssetAdministrationShell).all()
-        if not aas_list:
-            return jsonify({"Asset Administration Shells": []}), 200
-        else:
-            logger.debug(f"{len(aas_list)} Asset Administration Shells found")
-            return jsonify(show_aas_list(aas_list)), 200
-
-    finally:
-        session.close()
+    aas_list = session.query(AssetAdministrationShell).all()
+    if not aas_list:
+        return jsonify({"Asset Administration Shells": []}), 200
+    else:
+        logger.debug(f"{len(aas_list)} Asset Administration Shells found")
+        return jsonify(show_aas_list(aas_list)), 200
 
 
 @app.get("/aas", tags=[aas_tag],
@@ -184,18 +177,14 @@ def get_aas(query: AASSearchSchema):
     logger.debug(f"Collecting data for Asset Administration Shell #{decoded_aas_id}")
     session = Session()
 
-    try:
-        aas = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == decoded_aas_id).first()
-        if not aas:
-            error_msg = "Asset Administration Shell not found"
-            logger.warning(f"Error finding Asset Administration Shell: {decoded_aas_id}, {error_msg}")
-            return jsonify({"message": error_msg}), 404
-        else:
-            logger.debug(f"Asset Administration Shell data #{decoded_aas_id} found")
-            return jsonify(show_aas(aas)), 200
-
-    finally:
-        session.close()
+    aas = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == decoded_aas_id).first()
+    if not aas:
+        error_msg = "Asset Administration Shell not found"
+        logger.warning(f"Error finding Asset Administration Shell: {decoded_aas_id}, {error_msg}")
+        return jsonify({"message": error_msg}), 404
+    else:
+        logger.debug(f"Asset Administration Shell data #{decoded_aas_id} found")
+        return jsonify(show_aas(aas)), 200
 
 
 @app.delete("/aas", tags=[aas_tag],
@@ -208,20 +197,17 @@ def delete_aas(query: AASSearchSchema):
     logger.debug(f"Deleting data from Asset Administration Shell #{decoded_aas_id}")
     session = Session()
 
-    try:
-        count = session.query(AssetAdministrationShell).filter(
-            AssetAdministrationShell.aas_id == decoded_aas_id).delete()
-        session.commit()
+    count = session.query(AssetAdministrationShell).filter(
+        AssetAdministrationShell.aas_id == decoded_aas_id).delete()
+    session.commit()
 
-        if count:
-            logger.debug(f"Deleting Asset Administration Shell #{decoded_aas_id}")
-            return jsonify({"message": "Asset Administration Shell deleted", "aas_id": decoded_aas_id}), 200
-        else:
-            error_msg = "Asset Administration Shell not found in database"
-            logger.warning(f"Error deleting AAS #{decoded_aas_id}, {error_msg}")
-            return jsonify({"message": error_msg}), 404
-    finally:
-        session.close()
+    if count:
+        logger.debug(f"Deleting Asset Administration Shell #{decoded_aas_id}")
+        return jsonify({"message": "Asset Administration Shell deleted", "aas_id": decoded_aas_id}), 200
+    else:
+        error_msg = "Asset Administration Shell not found in database"
+        logger.warning(f"Error deleting AAS #{decoded_aas_id}, {error_msg}")
+        return jsonify({"message": error_msg}), 404
 
 
 @app.put("/aas", tags=[aas_tag],
@@ -242,49 +228,72 @@ def put_aas(form: AASUpdateSchema):
     logger.debug(f"Updating data for Asset Administration Shell #{aas_id}")
     session = Session()
 
-    try:
-        # Verify if AAS with the aas_id exists in database
-        aas = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == aas_id).first()
-        if not aas:
-            error_msg = "Asset Administration Shell not found in database"
-            logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
-            return jsonify({"message": error_msg}), 404
+    # Verify if AAS with the aas_id exists in database
+    aas = session.query(AssetAdministrationShell).filter(AssetAdministrationShell.aas_id == aas_id).first()
+    if not aas:
+        error_msg = "Asset Administration Shell not found in database"
+        logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
+        return jsonify({"message": error_msg}), 404
 
-        # Verify if another AAS with the same id_short already exists
-        existing_id_short = check_existing_id_short(session, form.id_short, aas_id)
-        if existing_id_short:
-            error_msg = f"Another Asset Administration Shell already exists with Id Short: {form.id_short}"
+    # Verify if another AAS with the same id_short already exists
+    existing_id_short = check_existing_id_short(session, form.id_short, aas_id)
+    if existing_id_short:
+        error_msg = f"Another Asset Administration Shell already exists with Id Short: {form.id_short}"
+        logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
+        return jsonify({"message": error_msg}), 409
+
+    # Verify if the new_aas_id already exists in the database
+    if new_aas_id and new_aas_id != aas_id:
+        existing_aas = check_existing_aas_id(session, aas_id, new_aas_id)
+        if existing_aas:
+            error_msg = f"Another Asset Administration Shell already exists with AAS ID: {new_aas_id}"
             logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
             return jsonify({"message": error_msg}), 409
 
-        # Verify if the new_aas_id already exists in the database
-        if new_aas_id and new_aas_id != aas_id:
-            existing_aas = check_existing_aas_id(session, aas_id, new_aas_id)
-            if existing_aas:
-                error_msg = f"Another Asset Administration Shell already exists with AAS ID: {new_aas_id}"
-                logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
-                return jsonify({"message": error_msg}), 409
+    # Validate required fields
+    if not check_required_fields(form):
+        error_msg = "Fields 'aas_id', 'id_short', and 'global_asset_id' are required and cannot be empty"
+        logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
+        return jsonify({"message": error_msg}), 400
 
-        # Validate required fields
-        if not check_required_fields(form):
-            error_msg = "Fields 'aas_id', 'id_short', and 'global_asset_id' are required and cannot be empty"
-            logger.warning(f"Error updating Asset Administration Shell #{aas_id}, {error_msg}")
-            return jsonify({"message": error_msg}), 400
+    if new_aas_id and new_aas_id.strip():
+        # Update with the new aas_id
+        aas.aas_id = form.update_aas_id
 
-        if new_aas_id and new_aas_id.strip():
-            # Update with the new aas_id
-            aas.aas_id = form.update_aas_id
+    aas.id_short = form.id_short
+    aas.asset_kind = AssetKind(form.asset_kind)
+    aas.global_asset_id = form.global_asset_id
+    aas.version = form.version
+    aas.revision = form.revision
+    aas.description = form.description
 
-        aas.id_short = form.id_short
-        aas.asset_kind = AssetKind(form.asset_kind)
-        aas.global_asset_id = form.global_asset_id
-        aas.version = form.version
-        aas.revision = form.revision
-        aas.description = form.description
+    session.commit()
+    logger.debug(f"Updated Asset Administration Shell #{aas_id}")
+    return jsonify(show_aas(aas)), 200
 
-        session.commit()
-        logger.debug(f"Updated Asset Administration Shell #{aas_id}")
-        return jsonify(show_aas(aas)), 200
 
-    finally:
-        session.close()
+@app.get("/generate_id", tags=[aas_tag],
+         responses={"200": IdEncodeDecodeSchema, "404": ErrorSchema})
+def generate_id(query: ModelTypeSchema):
+    """
+    Generate examples for aas_id or asset_id and show them with Base64Encode parameter.
+    """
+    model_type = query.model_type.value
+    blocks = [str(randint(1000, 9999)) for _ in range(4)]
+    decode_id = f"https://example.com/ids/{model_type}/" + "_".join(blocks)
+
+    try:
+        encode_id = IDDecoderService.encode_id(decode_id)
+
+        encode_decode_ids = IdEncodeDecodeSchema(
+            decode_aas_id=decode_id,
+            encode_aas_id=encode_id
+        )
+
+        return jsonify(show_encode_decode_ids(encode_decode_ids)), 200
+
+    except Exception as e:
+        # Handle unexpected errors
+        error_msg = f"Error during ID generation or encoding: {str(e)}"
+        logger.warning(f"Error during ID generation or encoding '{decode_id}', {error_msg}")
+        return jsonify({"message": error_msg}), 500

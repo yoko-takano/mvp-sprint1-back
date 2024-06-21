@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from model import AssetAdministrationShell
-from model.asset_administration_shell import AssetKind
+from model.asset_administration_shell import AssetKind, DefineModelType
 
 
 class AASSchema(BaseModel):
@@ -69,6 +69,28 @@ class AASDelSchema(BaseModel):
     """
     message: str
     aas_id: str
+
+
+class IdEncodeDecodeSchema(BaseModel):
+    """
+    Defines the response schema for encoded and decoded IDs.
+    """
+    encode_aas_id: str
+    decode_aas_id: str
+
+
+class ModelTypeSchema(BaseModel):
+    model_type: DefineModelType = DefineModelType.aas
+
+
+def show_encode_decode_ids(ids: IdEncodeDecodeSchema):
+    """
+    Returns a representation of the encoded and decoded identifiers.
+    """
+    return {
+        "encode_aas_id": ids.encode_aas_id,
+        "decode_aas_id": ids.decode_aas_id
+    }
 
 
 def show_aas(aas: AssetAdministrationShell):

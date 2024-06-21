@@ -1,8 +1,16 @@
 from datetime import datetime
 import enum
-from typing import Optional, Union, Any
+from typing import Union, Any
 from sqlalchemy import Column, String, Enum, DateTime, Integer
 from model.base import Base
+
+
+class DefineModelType(enum.Enum):
+    """
+    Defines the model type, can be Asset Administration Shell or Asset
+    """
+    aas = "aas"
+    asset = "asset"
 
 
 class AssetKind(enum.Enum):
