@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator, field_validator
 
 from model import AssetAdministrationShell
 from model.asset_administration_shell import AssetKind, DefineModelType
@@ -11,25 +11,30 @@ class AASSchema(BaseModel):
     """
     Defines how a new Asset Administration Shell to be inserted should be represented.
     """
-    aas_id: str = Field(default="https://example.com/ids/aas/v01",
+    aas_id: str = Field(...,
                         description="The globally unique identification of the element")
-    id_short: str = Field(default="Air_Central_v01_AAS",
+    id_short: str = Field(...,
                           description="A short name of the element")
     asset_kind: AssetKind = Field(default=AssetKind.INSTANCE,
-                                  description="Denotes whether the Asset is of kind “Type” or “Instance”")
-    global_asset_id: str = Field(default="https://example.com/id/assets/v01",
+                                  description="Denotes whether the Asset is of kind 'Type' or 'Instance'")
+    global_asset_id: str = Field(...,
                                  description="Global identifier of the asset the AAS represents")
-    version: Optional[str] = Field(default="1.0",
-                                   description="Version of the element")
-    revision: Optional[str] = Field(default="1.3",
-                                    description="Revision of the element")
-    description: Optional[str] = Field(default="Description or comments on the element to be created",
-                                       description="Description or comments on the element",)
+    version: Optional[str] = Field(None, description="Version of the element")
+    revision: Optional[str] = Field(None, description="Revision of the element")
+    description: Optional[str] = Field(None, description="Description or comments on the element")
+
+    @field_validator("version", "revision", mode="before")
+    @classmethod
+    def convert_to_string(cls, v: Union[str, float, int]) -> Union[str, None]:
+        if v is not None:
+            return str(v)
+        return None
 
 
 class AASUpdateSchema(AASSchema):
     """
     Defines how an existing Asset Administration Shell should be updated.
+    Inherits from AASSchema, simply adding update_aas_id as a parameter.
     """
     update_aas_id: str = Field(None,
                                description="New AAS ID to update in the database")
@@ -40,7 +45,7 @@ class AASSearchSchema(BaseModel):
     Defines the structure representing the search, which will be based on the AAS ID.
     The ID needs to be UTF8-BASE64-URL-encoded.
     """
-    aas_id: str = Field(default="aHR0cHM6Ly9leGFtcGxlLmNvbS9pZC9hYXMv",
+    aas_id: str = Field(...,
                         description="The Asset Administration Shell’s unique id (UTF8-BASE64-URL-encoded).")
 
 
@@ -80,7 +85,7 @@ class IdEncodeDecodeSchema(BaseModel):
 
 
 class ModelTypeSchema(BaseModel):
-    model_type: DefineModelType = DefineModelType.aas
+    type_model: DefineModelType = DefineModelType.aas
 
 
 def show_encode_decode_ids(ids: IdEncodeDecodeSchema):

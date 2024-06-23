@@ -278,9 +278,9 @@ def generate_id(query: ModelTypeSchema):
     """
     Generate examples for aas_id or asset_id and show them with Base64Encode parameter.
     """
-    model_type = query.model_type.value
+    type_model = query.type_model.value
     blocks = [str(randint(1000, 9999)) for _ in range(4)]
-    decode_id = f"https://example.com/ids/{model_type}/" + "_".join(blocks)
+    decode_id = f"https://example.com/ids/{type_model}/" + "_".join(blocks)
 
     try:
         encode_id = IDDecoderService.encode_id(decode_id)
