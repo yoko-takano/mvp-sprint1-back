@@ -1,4 +1,5 @@
 from random import randint
+from typing import Union
 
 from flask_openapi3 import Info, OpenAPI, Tag
 from flask import redirect, jsonify
@@ -6,7 +7,7 @@ from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
 from logger import logger
 from model import Session
-from model.asset_administration_shell import AssetAdministrationShell, AssetKind, DefineModelType
+from model.asset_administration_shell import AssetAdministrationShell, AssetKind
 from schemas import ErrorSchema
 from schemas.asset_administration_shell import AASSchema, show_aas, AASListSchema, show_aas_list, AASDelSchema, \
     AASSearchSchema, AASViewSchema, AASUpdateSchema, IdEncodeDecodeSchema, show_encode_decode_ids, ModelTypeSchema
@@ -58,7 +59,7 @@ def check_existing_aas_id(session, aas_id, new_aas_id):
     ).first()
 
 
-def check_required_fields(form: AASSchema):
+def check_required_fields(form: Union[AASSchema, AASUpdateSchema]):
     """
     Checks if the required fields 'aas_id', 'id_short', and 'global_asset_id' are not empty or whitespace only.
     Returns True if all required fields are valid, otherwise False.
@@ -73,7 +74,7 @@ def check_required_fields(form: AASSchema):
     return True
 
 
-def strip_whitespace(form: AASSchema):
+def strip_whitespace(form: Union[AASSchema, AASUpdateSchema]):
     """
     Strip leading and trailing whitespace from all relevant fields in the form.
     """
